@@ -6,7 +6,6 @@
 #include "GameFramework/Character.h"
 #include "XCharacterMovementComponent.h"
 
-
 #include "DefaultCharacter.generated.h"
 
 UCLASS()
@@ -28,18 +27,41 @@ public:
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-
 	virtual bool CanJumpInternal_Implementation() const override;
 
+	// the weapon classes spawned by default
+	UPROPERTY(EditDefaultsOnly, Category = "Configurations")
+		TArray <TSubclassOf<class AWeapon>> DefaultWeapons;
+
+public:
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Replicated, Category = "State")
+		TArray<class AWeapon*> Weapons;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, ReplicatedUsing = OnRep_CurrentWeapon, Category = "State")
+		class AWeapon* CurrentWeapon;
+
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadWrite, Category = "State")
+		int32 CurrentWeaponIndex = 0;
+
+	UFUNCTION(BlueprintCallable, Category = "Character")
+		virtual void EquipWeapon(const int32 Index);
+
+protected:
+	UFUNCTION()
+		virtual void OnRep_CurrentWeapon(const class AWeapon* OldWeapon);
+
+	UFUNCTION(Server, Reliable)
+		void Server_SetCurrentWeapon(class AWeapon* Weapon);
+	virtual void Server_SetCurrentWeapon_Implementation(class AWeapon* Weapon);
+
 private:
+	virtual void NextWeapon();
+	virtual void PreviousWeapon();
 
 	void MoveForward(const float Value);
 	void MoveRight(const float Value);
@@ -49,8 +71,8 @@ private:
 	void Sprint();
 	void StopSprinting();
 
-	void Crouch();
-	void StopCrouching();
+	void thisCrouch();
+	void thisStopCrouching();
 
 //	virtual void Jump() override;
 //	virtual void StopJumping() override;
